@@ -1,0 +1,3 @@
+# Callback API Configuration for demo module
+xTaskCreate:0
+xTaskCreatePinnedToCore:0

@@ -1,0 +1,3 @@
+# Callback API Configuration for LDC module
+# Format: api_name:param_index
+# TODO: 添加 LDC 模块特有的回调 API 配置
