@@ -35,12 +35,12 @@ cp -r /path/to/clangd-call-tree-skill ~/.claude/skills/clangd-call-tree
 cd /your-project/.skills/clangd-call-tree   # 或你选择的路径
 
 # 复制配置模板
-cp modules.json.example modules.json
+cp modules/module.json.example modules/module.json
 
-# 编辑 modules.json
+# 编辑 modules/module.json
 ```
 
-**modules.json 示例：**
+**modules/module.json 示例：**
 
 ```json
 {
@@ -48,9 +48,9 @@ cp modules.json.example modules.json
   "compile_commands": ".",
   "modules": {
     "ldc": {
-      "info": "ldc/info.md",
-      "filter_cfg": "ldc/filter.cfg",
-      "callback_cfg": "ldc/callback.toml",
+      "info": "modules/ldc/info.md",
+      "filter_cfg": "modules/ldc/filter.cfg",
+      "callback_cfg": "modules/ldc/callback.toml",
       "keywords": ["LDC", "ldc", "畸变"]
     }
   }
@@ -88,12 +88,14 @@ LDC 镜头畸变校正模块，支持多通道配置...
 # 如果模块没有回调，留空即可
 ```
 
-### 1.5 更新 SKILL.md 中的路径
+### 1.5 验证工具
 
-编辑 `SKILL.md`，找到环境变量部分，更新：
+`scripts/clang_ast/` 目录已包含 clangd-call-tree 工具（`main.py` + `src/`），无需额外配置路径。
 
-```markdown
-| `CLANGD_CALL_TREE` | clangd-call-tree 路径 | `~/clangd-call-tree/main.py` |
+验证：
+```bash
+cd /your-project/.skills/clangd-call-tree
+python3.12 scripts/clang_ast/main.py --help
 ```
 
 ---
@@ -112,7 +114,8 @@ your-project/
 │   └── clangd-call-tree/  # skill 目录
 │       ├── SKILL.md
 │       ├── CLAUDE.md → SKILL.md
-│       ├── modules.json
+│       ├── modules/
+│       │   └── module.json
 │       └── ...
 └── src/
     └── ...
@@ -179,10 +182,10 @@ Claude Code 会自动：
 
 ```bash
 # 1. 创建模块目录
-mkdir -p .skills/clangd-call-tree/venc
+mkdir -p .skills/clangd-call-tree/modules/venc
 
 # 2. 编写 info.md
-cat > .skills/clangd-call-tree/venc/info.md << 'EOF'
+cat > .skills/clangd-call-tree/modules/venc/info.md << 'EOF'
 # VENC 模块概况
 
 ## 入口函数检索范围
@@ -194,10 +197,10 @@ cat > .skills/clangd-call-tree/venc/info.md << 'EOF'
 EOF
 
 # 3. 创建 filter.cfg
-echo "+sdk/interface/src/venc/" > .skills/clangd-call-tree/venc/filter.cfg
-touch .skills/clangd-call-tree/venc/callback.toml
+echo "+sdk/interface/src/venc/" > .skills/clangd-call-tree/modules/venc/filter.cfg
+touch .skills/clangd-call-tree/modules/venc/callback.toml
 
-# 4. 更新 modules.json，添加 venc 模块
+# 4. 更新 modules/module.json，添加 venc 模块
 ```
 
 然后就可以用：
@@ -225,7 +228,7 @@ touch .skills/clangd-call-tree/venc/callback.toml
 
 | 问题 | 排查 |
 |------|------|
-| "modules.json not found" | 确认已 `cp modules.json.example modules.json` 并配置 |
+| "modules/module.json not found" | 确认已 `cp modules/module.json.example modules/module.json` 并配置 |
 | "compile_commands.json not found" | 确认 `project_root` 指向正确目录 |
 | "clangd not found" | 安装 clangd: `sudo apt install clangd` |
 | "Function not found" | 检查 info.md 中的头文件/源文件路径是否正确 |

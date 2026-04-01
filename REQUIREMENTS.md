@@ -11,7 +11,7 @@
 | 变量 | 说明 |
 |------|------|
 | `SKILL_DIR` | Skill 根目录 `~/.openclaw/code/projects/clangd-call-tree-skill/` |
-| `modules.json` | 模块配置文件，定义项目根、模块列表、关键词映射 |
+| `modules/module.json` | 模块配置文件，定义项目根、模块列表、关键词映射 |
 | `info.md` | 模块概况文档（插槽），包含 header/c 文件路径，供 sub-agent 检索入口函数 |
 | `filter.cfg` | clangd-call-tree 文件过滤配置（每个模块独立） |
 | `callback.toml` | clangd-call-tree 回调 API 配置（每个模块独立） |
@@ -26,7 +26,7 @@
 
 ## 3. 数据格式
 
-### 3.1 modules.json
+### 3.1 modules/module.json
 
 ```json
 {
@@ -34,9 +34,9 @@
   "compile_commands": ".",
   "modules": {
     "ldc": {
-      "info": "ldc/info.md",
-      "filter_cfg": "ldc/filter.cfg",
-      "callback_cfg": "ldc/callback.toml",
+      "info": "modules/ldc/info.md",
+      "filter_cfg": "modules/ldc/filter.cfg",
+      "callback_cfg": "modules/ldc/callback.toml",
       "keywords": ["LDC", "ldc"]
     }
   }
@@ -193,7 +193,7 @@ MI_LDC_CreateChannel (/abs/path/ldc_api.c:88) - Create LDC channel with config
 
 ### Step 1: 模块匹配
 
-主 agent 读取 `modules.json`，从用户需求中提取关键词，匹配模块。
+主 agent 读取 `modules/module.json`，从用户需求中提取关键词，匹配模块。
 
 - 从需求提取关键词（如 "LDC"）
 - 与 `modules.*.keywords` 匹配
@@ -380,22 +380,27 @@ Sub-agent 执行：
 clangd-call-tree-skill/
 ├── SKILL.md                    # 主入口（通用，兼容 Claude Code）
 ├── CLAUDE.md                   # symlink → SKILL.md
-├── modules.json                # 模块配置
-├── scripts/
+├── scripts/                    # 脚本集
+│   ├── clang_ast/              # clangd-call-tree 工具
+│   │   ├── main.py             # 入口
+│   │   └── src/                # 核心模块
 │   ├── find_column.py          # 列号计算辅助脚本
+│   ├── extract_keypoint.py     # Step 3.5: 提取 index+brief
 │   ├── simple_call_graph.py    # Step 5: 精简调用图生成
 │   └── generate_report.py      # Step 6: 报告文档生成
+├── modules/                    # 模块目录
+│   ├── module.json.example     # 模块配置示例
+│   ├── ldc/                    # ldc 模块插槽
+│   │   ├── info.md
+│   │   ├── filter.cfg
+│   │   └── callback.toml
+│   └── venc/                   # venc 模块插槽
+│       ├── info.md
+│       ├── filter.cfg
+│       └── callback.toml
 ├── templates/
 │   └── commit/
 │       └── format.md           # Commit 模板（插槽化）
-├── ldc/                        # 模块插槽示例
-│   ├── info.md                 # 模块概况
-│   ├── filter.cfg              # 文件过滤配置
-│   └── callback.toml           # 回调 API 配置
-├── venc/                       # 另一个模块插槽
-│   ├── info.md
-│   ├── filter.cfg
-│   └── callback.toml
 └── artifacts/                  # 运行时产物（需求完成后清理）
     ├── run_0/
     │   ├── call_graph.json

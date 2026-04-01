@@ -9,7 +9,7 @@
 | 任务 | 产出 | 说明 |
 |------|------|------|
 | 创建目录结构 | `clangd-call-tree-skill/` 完整目录 | 按 REQUIREMENTS.md §5 |
-| 编写 `modules.json` | 模块配置骨架 | 含 ldc 模块示例 |
+| 编写 `modules/module.json` | 模块配置骨架 | 含 ldc 模块示例 |
 | 编写 `templates/commit/format.md` | Commit 模板 | 插槽化，变量占位符 |
 | 编写 `ldc/info.md` | ldc 模块概况示例 | 含 header/c 文件路径 |
 | 复制 `ldc/filter.cfg` + `ldc/callback.toml` | ldc 模块配置 | 从 clangd-call-tree 项目复制 |
@@ -89,7 +89,7 @@ ASIC 树生成规则:
 ```
 SKILL.md 内容结构:
   1. Skill 名称与描述
-  2. 前置条件（modules.json 配置、clangd 安装）
+  2. 前置条件（modules/module.json 配置、clangd 安装）
   3. 流程步骤（对应 REQUIREMENTS.md §4 的 Step 0-12）
   4. 每个步骤的详细指令（sub-agent prompt 模板）
   5. 脚本调用方式

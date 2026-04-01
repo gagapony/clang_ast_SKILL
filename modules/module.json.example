@@ -1,0 +1,18 @@
+{
+  "project_root": "/path/to/project",
+  "compile_commands": ".",
+  "modules": {
+    "demo": {
+      "info": "modules/demo/info.md",
+      "filter_cfg": "modules/demo/filter.cfg",
+      "callback_cfg": "modules/demo/callback.toml",
+      "keywords": ["demo", "控制", "ControlSystem"]
+    },
+    "ldc": {
+      "info": "modules/ldc/info.md",
+      "filter_cfg": "modules/ldc/filter.cfg",
+      "callback_cfg": "modules/ldc/callback.toml",
+      "keywords": ["LDC", "ldc"]
+    }
+  }
+}
