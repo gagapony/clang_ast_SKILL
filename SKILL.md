@@ -28,7 +28,7 @@ Step 0   用户输入需求
           ↓
 Step 1   读 modules/module.json → 匹配模块
           ↓
-Step 2   sub-agent: 读info.md → 定位入口函数 → find_column.py
+Step 2   sub-agent: 从 info.md 函数目录匹配入口 → find_column.py
           ↓ 
 Step 3   ★ scripts/clang_ast/main.py 生成 call_graph.json ★
           ↓ [验证门: 文件存在且非空]
@@ -120,39 +120,62 @@ clangd-call-tree-skill/
 
 **执行者：** sub-agent
 
-### Sub-agent Prompt
+### Prompt 模板（固定，主 agent 禁止修改模板内容，只填 `{{}}` 占位符）
 
 ```
-你是代码分析专家。根据需求和模块信息，根据 `info.md` 的描述定位入口函数。
+你是代码分析专家。按以下流程执行：
 
-## 禁止
-- 禁止用 grep/find/rg **定位目标**
-- info.md 中有详细的接口简介，禁止直接翻源码
-- 禁止跳过、合并、重排任何 Step
-- 禁止根据经验/猜测判断要改哪些文件
-- 禁止中途停止，如有用户确认的点，需要主动向客户弹出 `AskUserQuestion tool` 交互窗口
-
-## 约束
-- 不允许外部搜索，只允许分析 `info.md`
+1. 阅读下方"参考文档"和"入口函数目录"，理解模块上下文
+2. 结合需求关键词，选出最贴合需求的函数作为入口点
+3. 仅从目录中选择，禁止输出目录外的函数
+4. 禁止使用任何文件读取或搜索工具，所有必要信息已在下方完整提供
 
 ## 需求
-{用户需求}
+{{USER_REQUIREMENT}}
 
-## 模块信息
-{info.md 内容}
+## 关键词（从需求提取）
+{{KEYWORDS}}
 
-## 任务
-全篇阅读 `info.md`，返回最为贴合需求的函数
+## 参考文档（info.md 引用的相关源文件内容，供理解函数签名和上下文）
+{{REFERENCE_DOCS}}
 
+## 入口函数目录（从 info.md 提取，这是唯一候选池）
+{{ENTRY_FUNC_CATALOG}}
 
-## 输出 (JSON)
+## 输出格式（严格 JSON，禁止额外文字）
 {
   "entry_functions": [
-    {"func_name": "xxx", "file": "path/file.c", "line": 100, "header": "path/file.h"}
+    {"func_name": "xxx", "file": "path/file.c", "line": 100}
   ],
   "reasoning": "选择理由"
 }
 ```
+
+### 主 agent 操作
+
+1. 提取关键词 → 填 `{{KEYWORDS}}`
+2. 原样传递用户需求 → 填 `{{USER_REQUIREMENT}}`
+3. 从 info.md 提取 `## Step2 Config` 段落：
+   - 查找 `### 入口函数目录` 及其下方所有表格内容
+   - 保留表头、所有函数行、文件归属标题（`#### 文件名`）
+   - 整段填入 `{{ENTRY_FUNC_CATALOG}}`
+   - **禁止对目录内容做删减或概括**
+   - 如果 info.md 无 `## Step2 Config` → 报错停止，要求补充
+4. 预读 info.md 中引用的文档 → 填 `{{REFERENCE_DOCS}}`：
+   - 从 info.md 的 `### Entry扩散文件` 段落提取文件列表
+   - 从 info.md 的 `## 入口函数检索范围` 段落提取头文件/源文件路径
+   - 从 info.md 的 `## 参考文档` 段落提取额外文档路径（如有）
+   - 所有路径相对于 `{project_root}` 解析
+   - 逐一 `read` 每个文件，格式化拼接：
+     ```
+     ### {文件名} ({相对路径})
+     {文件完整内容}
+
+     ---
+     ```
+   - 如果某个文件不存在 → 标注 `[文件未找到: {路径}]`，不中断流程
+   - 如果无引用文档 → 填 `无额外参考文档`
+5. **禁止改模板其他部分**
 
 ### 后处理
 
