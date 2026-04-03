@@ -52,7 +52,7 @@ bash {SKILL_DIR}/scripts/orchestrator.sh done-step 0
 1. 读取 `modules/module.json`
 2. 从需求提取关键词
 3. 匹配 `modules.*.keywords`
-4. 命中 → 加载 `info.md`
+4. 命中 → 记录 info.md 路径
 
 **Checkpoint：**
 ```bash
@@ -68,57 +68,41 @@ bash {SKILL_DIR}/scripts/orchestrator.sh done-step 1
 
 ## Step 2: 入口函数定位
 
-**执行者：** sub-agent
+**执行者：** sub-agent（sub-agent 自行读取 info.md 及所有引用文档）
 
 ### 主 agent 准备（spawn 之前完成）
 
-1. 提取关键词 → `{{KEYWORDS}}`
-2. 原样需求 → `{{USER_REQUIREMENT}}`
-3. 从 info.md 提取 `## Step2 Config` → `### 入口函数目录` 整段 → `{{ENTRY_FUNC_CATALOG}}`
-   - 无 `## Step2 Config` → 报错停止
-4. 预读引用文档 → `{{REFERENCE_DOCS}}`：
-   - 从 `### Entry扩散文件` / `## 入口函数检索范围` / `## 参考文档` 提取路径
-   - 相对 `{project_root}` 解析，逐一 read
-   - 格式：`### {文件名} ({路径})\n{内容}\n---`
-   - 文件不存在 → `[文件未找到]`，不中断
+只需准备 4 个变量：
 
-### Sub-agent Prompt（固定模板）
+| 变量 | 来源 |
+|------|------|
+| USER_REQUIREMENT | 原样用户需求 |
+| KEYWORDS | 从需求提取的关键词 |
+| INFO_MD_PATH | info.md 绝对路径（Step 1 checkpoint） |
+| PROJECT_ROOT | project_root（Step 1 checkpoint） |
 
-```
-你是代码分析专家。
-1. 阅读"参考文档"和"入口函数目录"
-2. 选出最贴合需求的函数作为入口点
-3. 仅从目录中选择，禁止输出目录外的函数
-4. 禁止使用任何文件读取或搜索工具
+### Sub-agent Prompt 模板
 
-## 需求
-{{USER_REQUIREMENT}}
+模板文件：`templates/prompts/step2_entry_finder.md`
 
-## 关键词
-{{KEYWORDS}}
-
-## 参考文档
-{{REFERENCE_DOCS}}
-
-## 入口函数目录（唯一候选池）
-{{ENTRY_FUNC_CATALOG}}
-
-## 输出（严格 JSON）
-{
-  "entry_functions": [
-    {"func_name": "xxx", "file": "path/file.c", "line": 100}
-  ],
-  "reasoning": "选择理由"
-}
-```
+主 agent 操作：
+1. read 模板文件
+2. 替换 `__XX__` 占位符为实际值
+3. 将替换后的文本作为 sub-agent 的 task 传入
 
 ### 后处理
+
+sub-agent 返回 JSON 后，主 agent 执行：
 
 ```bash
 mkdir -p {SKILL_DIR}/artifacts/run_{N}
 python3 {SKILL_DIR}/scripts/find_column.py \
   --file "{project_root}/{file}" --line {line} --func "{func_name}"
 ```
+
+拼接入口点：`{file}:{line}:{col}`
+
+多入口 → 后续 Step 3-7 对每个独立执行（run_0, run_1, ...）
 
 **Checkpoint：**
 ```bash
@@ -182,7 +166,7 @@ bash {SKILL_DIR}/scripts/orchestrator.sh done-step 3-4
 6. brief 为 null 且无法判断 → 排除
 ```
 
-**写入 filtered_indices.json 后验证：**
+**主 agent 收到输出后写入 filtered_indices.json，然后验证：**
 ```bash
 bash {SKILL_DIR}/scripts/pipeline.sh verify-step5 "run_{N}"
 ```
@@ -363,12 +347,12 @@ bash {SKILL_DIR}/scripts/orchestrator.sh done-step 13
 | Step 8 校验失败 | 附带错误打回 |
 | Step 9 轮次超限 | ESCALATE，停止 |
 | Step 11 用户 NO | 停止，保留代码 |
-| **AI 中途停止** | **用户重新发消息，AI 读 `orchestrator.sh next` 恢复** |
+| **AI 中途停止** | **用户重新发消息，AI 读 orchestrator.sh next 恢复** |
 
 ## 路径参考
 
 | 变量 | 说明 |
 |------|------|
-| `SKILL_DIR` | Skill 根目录（实际安装路径） |
-| `project_root` | 从 `modules/module.json` 读取 |
-| `module_dir` | `{SKILL_DIR}/modules/{module_name}/` |
+| SKILL_DIR | Skill 根目录（实际安装路径） |
+| project_root | 从 modules/module.json 读取 |
+| module_dir | SKILL_DIR/modules/{module_name}/ |
